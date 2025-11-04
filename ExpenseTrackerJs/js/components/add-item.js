@@ -26,26 +26,29 @@ function addItemEditEventListener() {
     toShow($addItemDetail);
   });
 
-  $addItemDetailButton.addEventListener("click", function (event) {
-    if (
-      !validateRequired({
-        category: $addItemCategory.value,
-        description: $addItemDescription.value,
-        price: $addItemPrice.value,
-      })
-    )
+  $addItemDetailButton.addEventListener("click", function () {
+    const category = $addItemCategory.value;
+    const description = $addItemDescription.value;
+    const priceValue = $addItemPrice.value;
+    const amount = Number(priceValue); // ✅ 숫자로 변환
+
+    if (!validateRequired({ category, description, price: amount })) {
       return alert("필수항목이 누락되었습니다.");
-    if (!validatePrice(store.currentFunds, $addItemPrice.value))
+    }
+
+    if (!validatePrice(store.currentFunds, amount)) {
       return alert("현재 자산 이상의 금액을 작성하셨습니다.");
+    }
 
     const newHistory = {
-      createAt: new Date(),
+      createAt: new Date().toISOString(), // ✅ ISO 문자열로 저장
       id: Date.now(),
-      description: $addItemDescription.value,
-      category: $addItemCategory.value,
-      amount: Number($addItemPrice.value),
-      fundsAtTheTime: store.currentFunds - Number($addItemPrice.value),
+      description,
+      category,
+      amount,
+      fundsAtTheTime: store.currentFunds - amount, // 지출 후 자산
     };
+
     const isSuccess = addNewHistory(newHistory);
     if (!isSuccess) {
       alert("소비내역 저장에 실패했습니다.");
@@ -55,7 +58,6 @@ function addItemEditEventListener() {
     toHidden($addItemDetail);
     toShow($addItemButton);
     initAddItemInput();
-
     reRender();
   });
 }

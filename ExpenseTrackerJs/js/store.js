@@ -16,10 +16,8 @@
  */
 export const store = {
   currentFunds: 0,
-
   isFirstEdit: true,
   todayId: 1,
-
   dateList: [
     {
       id: 1,
@@ -29,16 +27,22 @@ export const store = {
   detailList: {},
 };
 
-export function updateStorage() {
-  sessionStorage.setItem("store", JSON.stringify(store));
-}
-
 export function initStore() {
-  const storage = sessionStorage.getItem("store");
-  if (!storage) updateStorage();
+  let storage = sessionStorage.getItem("store");
 
-  const { dateList, detailList, todayId, currentFunds, isFirstEdit } =
-    JSON.parse(storage);
+  if (!storage) {
+    updateStorage();
+    storage = sessionStorage.getItem("store");
+  }
+
+  const parsed = JSON.parse(storage) || {};
+  const {
+    dateList = [],
+    detailList = [],
+    todayId = null,
+    currentFunds = 0,
+    isFirstEdit = true,
+  } = parsed;
 
   store.currentFunds = currentFunds;
   store.isFirstEdit = isFirstEdit;
@@ -55,11 +59,8 @@ export function addNewHistory(newHistory) {
       store.detailList[store.todayId] = [newHistory];
     }
 
-    if (newHistory.type === "expense") {
-      store.currentFunds -= newHistory.amount;
-    } else if (newHistory.type === "income") {
-      store.currentFunds += newHistory.amount;
-    }
+    // ✅ 수입 제거: 지출만 반영
+    store.currentFunds -= newHistory.amount;
 
     updateStorage();
     return true;
@@ -71,23 +72,24 @@ export function addNewHistory(newHistory) {
 
 export function removeHistory(dateId, itemId) {
   try {
-
     store.detailList[dateId] = store.detailList[dateId].filter(
-      ({ id, amount, type }) => {
+      ({ id, amount }) => {
         if (id === Number(itemId)) {
-          if (type === "expense") {
-            store.currentFunds += amount;
-          } else if (type === "income") {
-            store.currentFunds -= amount;
-          }
+          // ✅ 삭제 시 지출 복구 (자산 다시 더해줌)
+          store.currentFunds += amount;
         }
         return id !== Number(itemId);
       }
     );
+
     updateStorage();
     return true;
   } catch (error) {
     alert(error);
     return false;
   }
+}
+
+export function updateStorage() {
+  sessionStorage.setItem("store", JSON.stringify(store));
 }
